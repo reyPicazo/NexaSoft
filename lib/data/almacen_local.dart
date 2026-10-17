@@ -9,12 +9,23 @@ class AlmacenLocal {
 
   Future<List<Incidencia>> leer() async {
     final guardadas = await prefs.getString(clave);
-    final texto = guardadas ??
-        await rootBundle.loadString('assets/data/incidencias.json');
-    final lista = jsonDecode(texto) as List<dynamic>;
-    return lista
-        .map((item) => Incidencia.desdeJson(item as Map<String, dynamic>))
-        .toList();
+    
+    if (guardadas != null) {
+      final lista = jsonDecode(guardadas) as List<dynamic>;
+      return lista
+          .map((item) => Incidencia.desdeJson(item as Map<String, dynamic>))
+          .toList();
+    } else {
+      final texto = await rootBundle.loadString('assets/data/incidencias.json');
+      final lista = jsonDecode(texto) as List<dynamic>;
+      final incidenciasInicio = lista
+          .map((item) => Incidencia.desdeJson(item as Map<String, dynamic>))
+          .toList();
+          
+      await guardar(incidenciasInicio);
+      
+      return incidenciasInicio;
+    }
   }
 
   Future<void> guardar(List<Incidencia> lista) async {
