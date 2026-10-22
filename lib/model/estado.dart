@@ -1,0 +1,1 @@
+const List<String> estados = ['Todos', 'Resuelta', 'En proceso', 'Pendiente'];

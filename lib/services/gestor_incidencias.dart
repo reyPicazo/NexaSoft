@@ -4,17 +4,18 @@ import '../model/incidencia.dart';
 class GestorIncidencias {
   final AlmacenLocal datos = AlmacenLocal();
   List<Incidencia> incidencias = [];
-  int cantidadPendientes = 0;
 
   Future<void> iniciar() async {
     incidencias = await datos.leer();
-    cantidadPendientes =
-        incidencias.where((x) => x.estado == 'Pendiente').length;
   }
 
   List<Incidencia> buscar(String texto) {
     if (texto.trim().isEmpty) return incidencias;
-    return incidencias.where((x) => x.titulo.contains(texto)).toList();
+    String ignorarBusqueda(String t) => t.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+
+    String textoAux = ignorarBusqueda(texto);
+
+    return incidencias.where((x) => ignorarBusqueda(x.titulo).contains(textoAux) || ignorarBusqueda(x.descripcion).contains(textoAux)).toList(); 
   }
 
   Incidencia? porId(String id) {
@@ -25,7 +26,6 @@ class GestorIncidencias {
   }
 
   int contar(String estado) {
-    if (estado == 'Pendiente') return cantidadPendientes;
     return incidencias.where((x) => x.estado == estado).length;
   }
 
@@ -36,10 +36,23 @@ class GestorIncidencias {
         break;
       }
     }
+
+    await datos.guardar(incidencias);
+  }
+
+  Future<void> cambiarPrioridad(String id, String prioridad) async {
+    for (var i = 0; i < incidencias.length; i++) {
+      if (incidencias[i].id == id) {
+        incidencias[i].prioridad = prioridad;
+        break;
+      }
+    }
+     
+    await datos.guardar(incidencias);
   }
 
   Future<void> crear(String titulo, String descripcion, String cliente,
-      String categoria) async {
+      String categoria, String prioridad) async {
     final nuevo = Incidencia(
       id: 'INC-${DateTime.now().microsecondsSinceEpoch}',
       titulo: titulo,
@@ -48,9 +61,9 @@ class GestorIncidencias {
       categoria: categoria,
       estado: 'Pendiente',
       fecha: DateTime.now().toIso8601String().split('T').first,
+      prioridad: prioridad,
     );
     incidencias.insert(0, nuevo);
-    cantidadPendientes++;
     await datos.guardar(incidencias);
   }
 

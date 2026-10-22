@@ -3,6 +3,10 @@ import '../model/incidencia.dart';
 import '../services/gestor_incidencias.dart';
 import 'pantalla_detalle.dart';
 import 'pantalla_nueva.dart';
+import '../model/estado.dart';
+import '../model/prioridades.dart';
+import '../services/estado_chip.dart';
+import '../services/prioridad_chip.dart';
 
 class PantallaPrincipal extends StatefulWidget {
   const PantallaPrincipal({super.key});
@@ -12,6 +16,9 @@ class PantallaPrincipal extends StatefulWidget {
 }
 
 class _PantallaPrincipalState extends State<PantallaPrincipal> {
+  String estadoSeleccionado = 'Todos';
+  String prioridadSeleccionada = 'Todos';
+
   final GestorIncidencias g = GestorIncidencias();
   bool cargando = true;
   String? error;
@@ -22,6 +29,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     super.initState();
     cargar();
   }
+   
 
   Future<void> cargar() async {
     setState(() {
@@ -84,7 +92,24 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
 
   @override
   Widget build(BuildContext context) {
+   
+
+
+
     final items = g.buscar(busqueda);
+
+    final itemsMostrados = items.where((item){
+      if(estadoSeleccionado == 'Todos' && prioridadSeleccionada == 'Todos'){
+        return true;
+      } else if(estadoSeleccionado == 'Todos'){
+        return item.prioridad == prioridadSeleccionada;
+      } else if(prioridadSeleccionada == 'Todos'){
+        return item.estado == estadoSeleccionado;
+      } else {
+        return item.estado == estadoSeleccionado && item.prioridad == prioridadSeleccionada;  
+      }
+    }).toList();
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('NexaSoft | Incidencias'),
@@ -160,21 +185,81 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                             onChanged: (texto) => setState(() => busqueda = texto),
                           ),
                         ),
+
+                        const SizedBox(height: 8),
+
+                        Text('Filtrar por Estado', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54)),
+                        const SizedBox(height: 8),                   
+                        Center(
+                          child: Wrap(
+                            spacing: 8.0,
+                            runSpacing: 8.0, 
+                            alignment: WrapAlignment.center,
+                            children: estados.map((estado) {
+                              return EstadoChip(
+                                texto: estado,
+                                seleccionado: estadoSeleccionado == estado,
+                                onTap: () {
+                                  setState(() {
+                                    estadoSeleccionado = estado;
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+                        Text('Filtrar por Prioridad', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black54)),
+                        const SizedBox(height: 8),                   
+                        Center(
+                          child: Wrap(
+                            spacing: 8.0,
+                            runSpacing: 8.0, 
+                            alignment: WrapAlignment.center,
+                            children: prioridades.map((prioridad) {
+                              return PrioridadChip(
+                                texto: prioridad,
+                                seleccionado: prioridadSeleccionada == prioridad,
+                                onTap: () {
+                                  setState(() {
+                                    prioridadSeleccionada = prioridad;
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        //Vamos a poner un boton para limpiar los filtros y mostrar todos los elementos
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              estadoSeleccionado = 'Todos';
+                              prioridadSeleccionada = 'Todos';
+                            });
+                          },
+                          child: const Text('Limpiar filtros'),
+                        ),
+                        const SizedBox(height: 8),
+
+
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                           child: Align(
                             alignment: Alignment.centerLeft,
-                            child: Text('${items.length} registros', style: const TextStyle(color: Colors.black54)),
+                            child: Text('${itemsMostrados.length} registros', style: const TextStyle(color: Colors.black54)),
                           ),
                         ),
                         Expanded(
-                          child: items.isEmpty
+                          child: itemsMostrados.isEmpty
                               ? const Center(child: Text('No se encontraron incidencias'))
                               : ListView.builder(
                                   padding: const EdgeInsets.only(left: 12, right: 12, bottom: 100),
-                                  itemCount: items.length,
+                                  itemCount: itemsMostrados.length,
                                   itemBuilder: (context, i) {
-                                    final item = items[i];
+                                    final item = itemsMostrados[i];
                                     return Card(
                                       margin: const EdgeInsets.only(bottom: 10),
                                       child: ListTile(
@@ -186,6 +271,8 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text('${item.id}  ·  ${item.cliente}'),
+                                              const SizedBox(height: 6),
+                                              Text('Prioridad: ${item.prioridad}', style: const TextStyle(fontSize: 13)), 
                                               const SizedBox(height: 6),
                                               Text(item.estado, style: TextStyle(
                                                 color: colorEstado(item.estado), fontWeight: FontWeight.bold,
